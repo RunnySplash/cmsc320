@@ -3,7 +3,7 @@
 <head><meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Final Tutorial</title><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+<title>index</title><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
 
 
 
@@ -14572,8 +14572,8 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 <div class="jp-Cell-inputWrapper">
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
-<h2 id="Introduction:">Introduction:<a class="anchor-link" href="#Introduction:">&#182;</a></h2><p>The goal of this tutorial is to analyze Montgomery County Police Dispatched Incindent data from the year 2019 to 2022 and inform Montgomery Conuty residents the most common type of crime that happen in their city. Such information is important because</p>
-<p>Throghout this tutorial, I'll try to find trends between the types of crimes, the city in which the crime took place and also how they correlate with police response time to determine which city is the "safest".</p>
+<h2 id="Introduction:">Introduction:<a class="anchor-link" href="#Introduction:">&#182;</a></h2><p>The goal of this tutorial is to analyze Montgomery County Police Dispatched Incindent data from the year 2019 to 2022 and inform Montgomery Conuty residents the most common type of crime that happen in their city.</p>
+<p>Throughout this tutorial, I'll try to find trends between the types of crimes, the city in which the crime took place and also how they correlate with police response time.</p>
 
 </div>
 </div>
@@ -15317,6 +15317,308 @@ Arrive Cleared            237573
 dtype: int64
 </pre>
 </div>
+</div>
+
+</div>
+
+</div>
+
+</div>
+<div class="jp-Cell-inputWrapper">
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>It looks that some of the data that we are interested in are missing. According to this <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7642213/pdf/fpsyg-11-582428.pdf">article</a>, police reports often do not provide a comple dataset for one of four reasons:</p>
+
+<pre><code>1. public vs private reports (for internal use)
+2. police sometimes do not document all the variables related to an incident
+3. data collection is often not uniform across multiple jurisdictions
+4. sometimes parts of a police report are redacted
+
+</code></pre>
+<p>Given these reasons and also considering the size of the dataset, I think that it's reasonable to drop observations with missing values without prejudicing the dataset.</p>
+
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[23]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">dispatch_table</span> <span class="o">=</span> <span class="n">dispatch_table</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+<span class="nb">len</span><span class="p">(</span><span class="n">dispatch_table</span><span class="p">)</span>
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+
+
+<div class="jp-OutputArea jp-Cell-outputArea">
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[23]:</div>
+
+
+
+
+<div class="jp-RenderedText jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/plain">
+<pre>796217</pre>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+<div class="jp-Cell-inputWrapper">
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<h2 id="3.-Exploratory-data-analysis-and-data-visualization">3. Exploratory data analysis and data visualization<a class="anchor-link" href="#3.-Exploratory-data-analysis-and-data-visualization">&#182;</a></h2><p>In this stage in the data pipeline, I try to plot the data to spot potential trend and also perform statistical analysis to get supporting evidences for the trends that were observed.</p>
+<p>Let's start by finding the most common incidents with the least priority that police officers encounter</p>
+
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[30]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1">#COUNT HOW MANY OF EACH TYPE OF OFFENSE OCCUR SO WE CAN PICK TOP 5 TO PLOT ON HEAT MAPS AND HISTOGRAMS</span>
+
+<span class="n">priority_incid</span> <span class="o">=</span> <span class="n">dispatch_table</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">dispatch_table</span><span class="p">[</span><span class="s1">&#39;Priority&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">4</span><span class="p">][</span><span class="s1">&#39;Incident Type&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+<span class="n">types</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">priority_incid</span><span class="p">)</span> <span class="c1">#GET ALL UNIQUE TYPES IN DATAFRAME</span>
+<span class="n">types_with_counts</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1">#S TORE EACH TYPE&#39;S COUNTS IN AN ARRAY</span>
+
+<span class="n">temp_df</span> <span class="o">=</span> <span class="n">dispatch_table</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="c1">#DONT WANT TO GROUPBY IN THE ORIGINAL DATAFRAME SO I MADE A TEMPORARY DATAFRAME</span>
+
+<span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="k">for</span> <span class="n">ele</span> <span class="ow">in</span> <span class="n">types</span><span class="p">:</span> <span class="c1">#COUNT THE NUMBER OF OFFENSE FOR EACH TYPE BY GROUPING IN THE DATAFRAME AND STORING IT AS A TUPLE</span>
+    <span class="c1">#PANDAS WILL COUNT BY AN ATTRIBUTE FOR YOU, AND FILL IN THAT VALUE IN ALL COLUMNS, SO GRAB THOSE VALUES AND STORE THEM AS A TUPLE INTO A LIST</span>
+    <span class="n">types_with_counts</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">ele</span><span class="p">,</span> <span class="n">temp_df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;Incident Type&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">()[</span><span class="s1">&#39;Priority&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">:]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span> 
+    <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+
+<span class="c1">#NOW I HAVE A LIST IN FORM: (TYPE_OF_CRIME, FREQUENCY)</span>
+<span class="n">types_with_counts</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">types_with_counts</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">reverse</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+<span class="n">types_with_counts</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">10</span><span class="p">]</span>
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+
+
+<div class="jp-OutputArea jp-Cell-outputArea">
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[30]:</div>
+
+
+
+
+<div class="jp-RenderedText jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/plain">
+<pre>[(&#39;STLVEHT - TRS STOLEN VEHICLE - TELEPHONE REPORTING UNIT&#39;, 53798),
+ (&#39;T - TRANSPORT&#39;, 49799),
+ (&#39;RP - RECOVERED PROPERTY ON PATROL&#39;, 40755),
+ (&#39;BURGLARY - OCCURRED EARLIER&#39;, 27951),
+ (&#39;AUTO THEFT ON PATROL&#39;, 19230),
+ (&#39;GH - HOSPITAL GUARD DETAIL&#39;, 15934),
+ (&#39;ANIMAL VICIOUS&#39;, 15764),
+ (&#39;THEFTT - TRS THEFT/LARCENY - TELEPHONE REPORTING UNIT&#39;, 12484),
+ (&#39;INV - POLICE INVESTIGATION&#39;, 11417),
+ (&#39;DOMESTIC DISTURBANCE/VIOLENCE&#39;, 10074)]</pre>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+<div class="jp-Cell-inputWrapper">
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>And comparing those incidents to the most common incidents that have the highest priority</p>
+
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[29]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1">#GET ALL UNIQUE INCIDENT OF PRIORITY 0</span>
+<span class="n">priority0_incid</span> <span class="o">=</span> <span class="n">dispatch_table</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">dispatch_table</span><span class="p">[</span><span class="s1">&#39;Priority&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">][</span><span class="s1">&#39;Incident Type&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+<span class="n">types_0</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">priority0_incid</span><span class="p">)</span> 
+<span class="n">types0_with_counts</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1">#S TORE EACH TYPE&#39;S COUNTS IN AN ARRAY</span>
+
+<span class="n">temp_df</span> <span class="o">=</span> <span class="n">dispatch_table</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="c1">#DONT WANT TO GROUPBY IN THE ORIGINAL DATAFRAME SO I MADE A TEMPORARY DATAFRAME</span>
+
+<span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="k">for</span> <span class="n">ele</span> <span class="ow">in</span> <span class="n">types_0</span><span class="p">:</span> <span class="c1">#COUNT THE NUMBER OF OFFENSE FOR EACH TYPE BY GROUPING IN THE DATAFRAME AND STORING IT AS A TUPLE</span>
+    <span class="c1">#PANDAS WILL COUNT BY AN ATTRIBUTE FOR YOU, AND FILL IN THAT VALUE IN ALL COLUMNS, SO GRAB THOSE VALUES AND STORE THEM AS A TUPLE INTO A LIST</span>
+    <span class="n">types0_with_counts</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">ele</span><span class="p">,</span> <span class="n">temp_df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;Incident Type&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">()[</span><span class="s1">&#39;Priority&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">:]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span> 
+    <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+
+<span class="c1">#NOW I HAVE A LIST IN FORM: (TYPE_OF_CRIME, FREQUENCY)</span>
+<span class="n">types0_with_counts</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">types0_with_counts</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">reverse</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+<span class="n">types0_with_counts</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">10</span><span class="p">]</span>
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+
+
+<div class="jp-OutputArea jp-Cell-outputArea">
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[29]:</div>
+
+
+
+
+<div class="jp-RenderedText jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/plain">
+<pre>[(&#39;SUICIDAL PERSON/ATTEMPTED SUICIDE - OCCURRED EARLIER&#39;, 53798),
+ (&#39;THEFT/LARCENY&#39;, 49799),
+ (&#39;SHOOTING&#39;, 40755),
+ (&#39;ASSAULT - OCCURRED EARLIER&#39;, 27951),
+ (&#39;ANIMALVJ - ANIMAL VICIOUS JUST OCCURRED&#39;, 19230),
+ (&#39;DOMESTIC DISTURBANCE/VIOLENCE OCCURRED EARLIER&#39;, 15934),
+ (&#39;ALARMRB - COMMERCIAL HOLDUP/DURESS/PANIC&#39;, 15764),
+ (&#39;TS - TRAFFIC STOP&#39;, 12484),
+ (&#39;MENTAL DISORDER&#39;, 11417),
+ (&#39;CAR JACKING&#39;, 10074)]</pre>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+<div class="jp-Cell-inputWrapper">
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>From the lists shown, we see the top 10 most common incidents and the top 10 incident with prioeity 0 that police officers encounter. Let's compile a list of top 5 incident from both lists and try to plot potential trends in response time depending on the city.</p>
+
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs  ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[32]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">prior4_incidents</span> <span class="o">=</span> <span class="n">types_with_counts</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">5</span><span class="p">]</span>
+<span class="n">prior0_incidents</span> <span class="o">=</span> <span class="n">types0_with_counts</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">5</span><span class="p">]</span>
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
+</div>
+<div class="jp-Cell-inputWrapper">
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
+<p>In this next section of data visulaization, I'll go through each list of incidents an plotting their average response time to see if there's a relationship between the type of incident and police response rate for each police jurisdiction</p>
+<p>Let's start with the top 5 incidents with the least priority</p>
+
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell   ">
+<div class="jp-Cell-inputWrapper">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[52]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+     <div class="CodeMirror cm-s-jupyter">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">cities</span> <span class="o">=</span> <span class="n">dispatch_table</span><span class="p">[</span><span class="s1">&#39;City&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+
+
+
+<span class="k">for</span> <span class="n">city</span> <span class="ow">in</span> <span class="n">cities</span><span class="p">:</span>
+    <span class="n">incidents</span> <span class="o">=</span> <span class="p">{}</span> <span class="c1"># LIST OF OF INCIDENTS WITH LOW PRIORITY</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">prior4_incidents</span><span class="p">)):</span>
+        <span class="n">incidents</span><span class="p">[</span><span class="n">prior4_incidents</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1">#EACH TYPE IN THE HASH</span>
+    
+    <span class="n">hours</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">dispatch_table</span><span class="o">.</span><span class="n">idx</span><span class="p">:</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">dispatch_table</span><span class="o">.</span><span class="n">at</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="s1">&#39;Incident Type&#39;</span><span class="p">]</span>
+        
+        <span class="k">if</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">incidents</span><span class="p">:</span>
+            <span class="n">hour</span> <span class="o">=</span> <span class="n">dispatch_table</span><span class="o">.</span><span class="n">at</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="s2">&quot;Start Time&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">hour</span> <span class="c1">#STORE ITS HOUR</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="n">dispatch_table</span><span class="o">.</span><span class="n">at</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="s2">&quot;Dispatch Arrived&quot;</span><span class="p">]</span> <span class="c1"># SECONDS IT TOO</span>
+            
+            
+</pre></div>
+
+     </div>
+</div>
+</div>
+</div>
+
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+
+
+<div class="jp-OutputArea jp-Cell-outputArea">
+
+<div class="jp-OutputArea-child">
+
+    
+    <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[52]:</div>
+
+
+
+
+<div class="jp-RenderedText jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/plain">
+<pre>{&#39;STLVEHT - TRS STOLEN VEHICLE - TELEPHONE REPORTING UNIT&#39;: [],
+ &#39;T - TRANSPORT&#39;: [],
+ &#39;RP - RECOVERED PROPERTY ON PATROL&#39;: [],
+ &#39;BURGLARY - OCCURRED EARLIER&#39;: [],
+ &#39;AUTO THEFT ON PATROL&#39;: []}</pre>
+</div>
+
 </div>
 
 </div>
